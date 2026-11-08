@@ -20,6 +20,7 @@ on:
 jobs:
   run-btst-screener:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
 
@@ -69,6 +70,7 @@ jobs:
         run: |
           git config --global user.name "GodBTST-Bot"
           git config --global user.email "bot@godbtst.local"
+          git pull --rebase origin main || true
           git add signals/
           git commit -m "Auto-update BTST signals [$(date +'%Y-%m-%d %H:%M IST')]" || echo "No new signals to commit"
-          git push
+          git push origin main || echo "Push skipped"

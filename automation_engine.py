@@ -38,12 +38,22 @@ def is_market_day_today():
 
     return True, "Active Trading Day"
 
-def ensure_signals_dir():
-    if not os.path.exists(SIGNALS_DIR):
-        os.makedirs(SIGNALS_DIR)
+def update_heartbeat(mode: str):
+    """Updates heartbeat timestamp to prevent GitHub Actions cron auto-disable."""
+    ensure_signals_dir()
+    heartbeat_path = os.path.join(SIGNALS_DIR, "heartbeat.json")
+    ist = pytz.timezone("Asia/Kolkata")
+    now_ist = datetime.datetime.now(ist)
+    data = {
+        "last_run_ist": now_ist.strftime("%Y-%m-%d %H:%M:%S IST"),
+        "last_mode": mode,
+        "status": "HEALTHY"
+    }
+    with open(heartbeat_path, "w") as f:
+        json.dump(data, f, indent=4)
 
 def run_315pm_scan(force=False):
-    ensure_signals_dir()
+    update_heartbeat("scan")
     is_open, reason = is_market_day_today()
     if not is_open and not force:
         print(f"[i] Market is closed today: {reason}. Skipping scan.")
@@ -77,7 +87,7 @@ def run_315pm_scan(force=False):
     send_telegram_message(alert_html)
 
 def run_915am_exit():
-    ensure_signals_dir()
+    update_heartbeat("morning-exit")
     now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"[{now_str}] 🔔 Triggering 9:15 AM Market Opening Exit Monitor...")
 
