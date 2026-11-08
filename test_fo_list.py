@@ -1,0 +1,9 @@
+# List of top liquid F&O stocks on NSE
+FO_STOCKS = [
+    "RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "ICICIBANK.NS", "INFY.NS",
+    "SBIN.NS", "BHARTIARTL.NS", "LT.NS", "ITC.NS", "AXISBANK.NS",
+    "TATAMOTORS.NS", "SUNPHARMA.NS", "MARUTI.NS", "BAJFINANCE.NS", "HCLTECH.NS",
+    "KOTAKBANK.NS", "TATASTEEL.NS", "NTPC.NS", "POWERGRID.NS", "TITAN.NS",
+    "ASIANPAINT.NS", "M&M.NS", "ADANIENT.NS", "ULTRACEMCO.NS", "ONGC.NS"
+]
+print(f"Total F&O stocks configured: {len(FO_STOCKS)}")

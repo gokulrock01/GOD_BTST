@@ -1,0 +1,70 @@
+name: Automated BTST Options Trader (NSE)
+
+on:
+  schedule:
+    # 09:45 AM UTC = 3:15 PM IST (Monday to Friday) - EOD 3:15 PM BTST Screener
+    - cron: '45 9 * * 1-5'
+    # 03:45 AM UTC = 9:15 AM IST (Monday to Friday) - Market Open Exit Monitor
+    - cron: '45 3 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Execution mode to run'
+        required: true
+        default: 'scan'
+        type: choice
+        options:
+          - scan
+          - morning-exit
+
+jobs:
+  run-btst-screener:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Determine execution mode
+        id: exec-mode
+        run: |
+          # If manual dispatch, use the chosen input
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "mode=${{ github.event.inputs.mode }}" >> $GITHUB_OUTPUT
+          else
+            # Check current hour in UTC
+            CURRENT_HOUR=$(date -u +'%H')
+            if [ "$CURRENT_HOUR" -eq 9 ] || [ "$CURRENT_HOUR" -eq 10 ]; then
+              echo "mode=scan" >> $GITHUB_OUTPUT
+            else
+              echo "mode=morning-exit" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Run BTST Orderflow Automation
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN || secrets.SWING_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID || secrets.GOD_SWING_ID }}
+        run: |
+          python automation_engine.py --mode ${{ steps.exec-mode.outputs.mode }}
+
+      - name: Commit and push updated signals
+        run: |
+          git config --global user.name "GodBTST-Bot"
+          git config --global user.email "bot@godbtst.local"
+          git add signals/
+          git commit -m "Auto-update BTST signals [$(date +'%Y-%m-%d %H:%M IST')]" || echo "No new signals to commit"
+          git push
