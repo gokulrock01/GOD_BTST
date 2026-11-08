@@ -1,0 +1,28 @@
+[
+    {
+        "Symbol": "ICICIBANK",
+        "LTP": 1571.2,
+        "VWAP": 1510.31,
+        "Range_%": 100.0,
+        "Change_%": 3.27,
+        "Vol_Ratio": "2.7x",
+        "OF_Score": "90/100",
+        "Power_Hour_Delta": "+209,492",
+        "Recommended_Option": "BUY 1570 CE",
+        "Entry_Window": "3:20 - 3:25 PM",
+        "Target_Exit": "9:15 - 9:30 AM (+25% to +40%)"
+    },
+    {
+        "Symbol": "HDFCBANK",
+        "LTP": 788.25,
+        "VWAP": 766.81,
+        "Range_%": 100.0,
+        "Change_%": 3.12,
+        "Vol_Ratio": "2.1x",
+        "OF_Score": "90/100",
+        "Power_Hour_Delta": "+3,524,426",
+        "Recommended_Option": "BUY 790 CE",
+        "Entry_Window": "3:20 - 3:25 PM",
+        "Target_Exit": "9:15 - 9:30 AM (+25% to +40%)"
+    }
+]
