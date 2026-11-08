@@ -1,80 +1,94 @@
-# Institutional BTST / STBT Engine for Indian Stock Options (NSE)
+# GOD BTST — Institutional Options & Orderflow Engine (NSE)
 
-An automated Buy Today, Sell Tomorrow (BTST) screening, backtesting, and execution system engineered specifically for the National Stock Exchange (NSE) F&O segment.
-
----
-
-## ⚡ The Hard Truth of Overnight Stock Options (Trader Reality Check)
-
-Overnight options buying without statistical discipline is why 90%+ retail traders lose money in F&O:
-
-1. **Overnight Theta Burn**: 
-   - Between 3:30 PM and 9:15 AM the next day, an ATM stock option loses approximately **5% to 8%** of its premium to time decay.
-   - If a stock gaps up only +0.20%, an option with a 0.50 Delta gains ~+3.5% in intrinsic/delta value, but **loses 7% to theta** = **Net -3.5% loss**.
-2. **Physical Settlement Risk in Expiry Week**:
-   - In Indian markets, all stock F&O contracts are settled physically in the expiry week. **NEVER hold in-the-money stock options into the final week of the monthly cycle** without meeting the full margin requirement.
-3. **Liquidity & Spread Trap**:
-   - Illiquid strikes have a 2% to 5% bid-ask spread. This engine restricts screening **exclusively to the top 25-30 liquid F&O stocks** with tight spreads and high open interest (OI).
+Automated Buy Today, Sell Tomorrow (BTST) / Sell Today, Buy Tomorrow (STBT) stock options trading system powered by **Intraday Orderflow, Cumulative Volume Delta (CVD), and VWAP Aggression**. Fully integrated with **Telegram Notifications** and **GitHub Actions**.
 
 ---
 
-## 📊 Backtest Findings Across Top NSE F&O Stocks (2023 - Present)
+## ⚡ Architecture & Dual Execution Windows
 
-| Parameter | Naked ATM Option BTST | Equity / Futures BTST | Theta-Hedged Spread (Bull Call) |
-| :--- | :--- | :--- | :--- |
-| **Win Rate** | **~26 - 28%** | **~54 - 58%** | **~52 - 56%** |
-| **Avg Return/Trade** | **-4.3% to -6.1%** | **+0.15% to +0.35%** | **+1.2% to +2.4%** |
-| **Overnight Theta Decay**| High (-7% daily) | **Zero (0%)** | Reduced (-2% daily) |
-| **Profit Factor** | 0.37 (Negative Expectancy)| 1.25 (Positive Expectancy)| 1.45 (Positive Expectancy)|
-
-### 💡 Trader Takeaway:
-- **Do NOT buy naked overnight stock options unless the volume spike is >2.0x and closing within 10% of day high.**
-- **Prefer Bull Call / Bear Put Spreads** (buying ATM and selling OTM) or **Futures/Equity BTST** to eliminate or cushion overnight theta decay.
-
----
-
-## 🛠️ File Structure
-
-- [`backtest_btst.py`](file:///Users/gokul/Downloads/GOD_BTST/backtest_btst.py): High-precision historical backtester simulating delta, theta decay, and slippage.
-- [`backtest_comparison.py`](file:///Users/gokul/Downloads/GOD_BTST/backtest_comparison.py): Compares Naked Options vs. Stock Equity vs. Spreads.
-- [`btst_screener.py`](file:///Users/gokul/Downloads/GOD_BTST/btst_screener.py): Real-time / 3:15 PM scanner for current day setups.
-- [`automation_engine.py`](file:///Users/gokul/Downloads/GOD_BTST/automation_engine.py): Automation scheduler & Telegram alert dispatcher.
-
----
-
-## 🚀 How to Run
-
-### 1. Run the Real-Time 3:15 PM Screener
-```bash
-python3 btst_screener.py
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                        DAILY AUTOMATION TIMELINE                       │
+├──────────────────┬─────────────────────────────────────────────────────┤
+│ 03:15 PM IST     │ 🚀 EOD SCANNER TRIGGERS                             │
+│ (09:45 AM UTC)   │ • Analyzes 30 liquid F&O stocks with 5m Orderflow   │
+│                  │ • Dispatches High-Conviction CE / PE Telegram Alert │
+│                  │ • Execution Window: 3:20 PM – 3:26 PM               │
+├──────────────────┼─────────────────────────────────────────────────────┤
+│ 09:15 AM IST     │ 🔔 MARKET OPENING EXIT MONITOR                      │
+│ (03:45 AM UTC)   │ • Evaluates overnight gap                           │
+│                  │ • Dispatches profit-booking alert (+25% to +40%)    │
+│                  │ • Mandates exit before 9:30 AM if momentum stalls   │
+└──────────────────┴─────────────────────────────────────────────────────┘
 ```
 
-### 2. Run the Backtesting Engine
+---
+
+## 📲 Telegram Integration & Alerts
+
+The Telegram notification engine in [`telegram_notifier.py`](file:///Users/gokul/Downloads/GOD_BTST/telegram_notifier.py) uses the exact HTML formatting established in your swing trading system.
+
+### Environment Secrets:
+The engine automatically reads:
+* `TELEGRAM_BOT_TOKEN` (or fallback `SWING_BOT_TOKEN`)
+* `TELEGRAM_CHAT_ID` (or fallback `GOD_SWING_ID`)
+
+### Sample Telegram Alert Dispatched:
+```text
+⚡ GOD BTST — INSTITUTIONAL OPTIONS DISPATCH 🇮🇳
+NSE F&O | Orderflow & Volume Breakout | 08-Nov-2026 15:18 IST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 CONFIRMED SIGNALS FOR OVERNIGHT CARRY: (2 found)
+⏰ EXECUTION WINDOW: 3:20 PM – 3:26 PM
+
+🟢 #1 HDFCBANK — BUY 790 CE
+• LTP: ₹788.25 (100.0% of Day High)
+• VWAP: ₹766.81 (Trading above benchmark)
+• Volume Expansion: 2.1x 20-day SMA
+• Orderflow Score: 90/100 (Institutional Accumulation)
+• Power-Hour Delta: +3,524,426 contracts
+• Target Gain: +25% to +40% at 9:15–9:30 AM Open
+• Stop Loss: -15% on Option Premium
+
+🛡️ RISK & EXECUTION PLAYBOOK:
+1. Expiry: Current monthly expiry only (Never trade in monthly expiry week!).
+2. Hard Exit: 9:15 AM – 9:30 AM tomorrow. If stock opens flat, THETA WILL HURT. Dump by 9:30 AM.
+3. Position Size: Max 1 or 2 lots per stock.
+```
+
+---
+
+## ⚙️ GitHub Actions Automation Setup
+
+A workflow is configured in [`.github/workflows/btst_trader.yml`](file:///Users/gokul/Downloads/GOD_BTST/.github/workflows/btst_trader.yml):
+
+1. **Scheduled Runs (Mon–Fri):**
+   * `45 9 * * 1-5`: Runs at **3:15 PM IST** (09:45 UTC).
+   * `45 3 * * 1-5`: Runs at **9:15 AM IST** (03:45 UTC).
+2. **Manual Dispatch:**
+   * Go to **GitHub Repo -> Actions -> Automated BTST Options Trader -> Run workflow**.
+   * Select `scan` (for 3:15 PM scan) or `morning-exit` (for 9:15 AM exit).
+3. **Repository Secrets Required:**
+   Add these in **GitHub -> Settings -> Secrets and variables -> Actions**:
+   * `TELEGRAM_BOT_TOKEN`
+   * `TELEGRAM_CHAT_ID`
+
+---
+
+## 🛠️ Local Usage
+
+### Run 3:15 PM Scan Manually:
+```bash
+python3 automation_engine.py --mode scan
+```
+
+### Run 9:15 AM Exit Alert Manually:
+```bash
+python3 automation_engine.py --mode morning-exit
+```
+
+### Run Multi-Year Historical Backtest:
 ```bash
 python3 backtest_btst.py
 ```
-
-### 3. Run Automated 3:15 PM Daily Alerts
-Set your Telegram Bot credentials (optional) and run:
-```bash
-export TELEGRAM_BOT_TOKEN="your_bot_token"
-export TELEGRAM_CHAT_ID="your_chat_id"
-python3 automation_engine.py
-```
-
-### 4. Schedule Automatically via Mac/Linux Crontab
-To run every market trading day (Monday to Friday) at **3:15 PM IST**:
-```bash
-# Open crontab
-crontab -e
-
-# Add the following line (adjust path):
-15 15 * * 1-5 cd /Users/gokul/Downloads/GOD_BTST && /usr/bin/python3 automation_engine.py >> btst_cron.log 2>&1
-```
-
----
-
-## 🎯 Pro Trader Execution Rules
-1. **Entry Window**: Enter strictly between **3:20 PM and 3:26 PM**.
-2. **Strike Selection**: Trade **At-The-Money (ATM)** or 1-strike **In-The-Money (ITM)**. Never buy deep Out-Of-The-Money (OTM) options.
-3. **Hard Exit**: Exit position between **9:15 AM and 9:30 AM** the next morning. If the stock opens flat or does not break out immediately, cut the trade to protect capital from theta acceleration.
