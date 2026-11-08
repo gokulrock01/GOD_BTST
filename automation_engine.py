@@ -11,18 +11,39 @@ import sys
 import json
 import argparse
 import datetime
+import pytz
+import yfinance as yf
 from btst_screener import scan_btst_opportunities
 from telegram_notifier import send_telegram_message, format_btst_scan_alert, format_morning_exit_alert
 
 SIGNALS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "signals")
 ORDERS_FILE = os.path.join(SIGNALS_DIR, "btst_orders_today.json")
 
+def is_market_day_today():
+    """
+    Checks if today is a regular NSE trading day.
+    Returns (is_open: bool, reason: str)
+    """
+    ist = pytz.timezone("Asia/Kolkata")
+    now_ist = datetime.datetime.now(ist)
+    
+    # 1. Weekend Check (5 = Saturday, 6 = Sunday)
+    if now_ist.weekday() >= 5:
+        return False, f"Weekend ({now_ist.strftime('%A')})"
+
+    return True, "Active Trading Day"
+
 def ensure_signals_dir():
     if not os.path.exists(SIGNALS_DIR):
         os.makedirs(SIGNALS_DIR)
 
-def run_315pm_scan():
+def run_315pm_scan(force=False):
     ensure_signals_dir()
+    is_open, reason = is_market_day_today()
+    if not is_open and not force:
+        print(f"[i] Market is closed today: {reason}. Skipping scan.")
+        return
+
     now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"[{now_str}] 🚀 Triggering 3:15 PM Institutional Orderflow BTST Screener...")
 
@@ -70,10 +91,12 @@ def main():
     parser = argparse.ArgumentParser(description="GOD BTST Automation Engine")
     parser.add_argument("--mode", choices=["scan", "morning-exit"], default="scan",
                         help="Execution mode: 'scan' (3:15 PM) or 'morning-exit' (9:15 AM)")
+    parser.add_argument("--force", action="store_true", default=False,
+                        help="Force execution even if market is closed today")
     args = parser.parse_args()
 
     if args.mode == "scan":
-        run_315pm_scan()
+        run_315pm_scan(force=args.force)
     elif args.mode == "morning-exit":
         run_915am_exit()
 
