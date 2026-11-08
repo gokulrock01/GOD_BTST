@@ -58,6 +58,10 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.BTST_BOT_TOKEN || secrets.TELEGRAM_BOT_TOKEN || secrets.SWING_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.BTST_ID || secrets.TELEGRAM_CHAT_ID || secrets.GOD_SWING_ID }}
+          ANGEL_API_KEY: ${{ secrets.ANGEL_API_KEY }}
+          ANGEL_CLIENT_CODE: ${{ secrets.ANGEL_CLIENT_CODE }}
+          ANGEL_PIN: ${{ secrets.ANGEL_PIN }}
+          ANGEL_TOTP_KEY: ${{ secrets.ANGEL_TOTP_KEY }}
         run: |
           python automation_engine.py --mode ${{ steps.exec-mode.outputs.mode }}
 
