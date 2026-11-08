@@ -96,6 +96,15 @@ def format_btst_scan_alert(bullish_setups, bearish_setups):
             msg += f"• <b>Volume Expansion:</b> <code>{s['Vol_Ratio']}</code> 20-day SMA\n"
             msg += f"• <b>Orderflow Score:</b> <code>{s['OF_Score']}</code> (Institutional Accumulation)\n"
             msg += f"• <b>Power-Hour Delta:</b> <code>{s['Power_Hour_Delta']}</code> contracts\n"
+            
+            # News & Earnings Catalyst
+            if s.get("Earnings_Hazard"):
+                msg += f"• ⚠️ <b>EARNINGS HAZARD / IV CRUSH RISK:</b> Results announcement imminent! <i>DO NOT hold naked options overnight.</i>\n"
+            else:
+                msg += f"• 📰 <b>News Catalyst:</b> <code>{s.get('News_Sentiment', 'NEUTRAL')}</code>\n"
+                if s.get("Top_News"):
+                    msg += f"  <i>\"{s['Top_News'][:90]}...\"</i>\n"
+
             msg += f"• <b>Target Gain:</b> <code>+25% to +40%</code> at 9:15–9:30 AM Open\n"
             msg += f"• <b>Stop Loss:</b> <code>-15%</code> on Option Premium\n\n"
 
@@ -108,6 +117,15 @@ def format_btst_scan_alert(bullish_setups, bearish_setups):
             msg += f"• <b>Volume Expansion:</b> <code>{s['Vol_Ratio']}</code> 20-day SMA\n"
             msg += f"• <b>Orderflow Score:</b> <code>{s['OF_Score']}</code> (Institutional Distribution)\n"
             msg += f"• <b>Power-Hour Delta:</b> <code>{s['Power_Hour_Delta']}</code> contracts\n"
+            
+            # News & Earnings Catalyst
+            if s.get("Earnings_Hazard"):
+                msg += f"• ⚠️ <b>EARNINGS HAZARD / IV CRUSH RISK:</b> Results announcement imminent! <i>DO NOT hold naked options overnight.</i>\n"
+            else:
+                msg += f"• 📰 <b>News Catalyst:</b> <code>{s.get('News_Sentiment', 'NEUTRAL')}</code>\n"
+                if s.get("Top_News"):
+                    msg += f"  <i>\"{s['Top_News'][:90]}...\"</i>\n"
+
             msg += f"• <b>Target Gain:</b> <code>+25% to +40%</code> at 9:15–9:30 AM Open\n"
             msg += f"• <b>Stop Loss:</b> <code>-15%</code> on Option Premium\n\n"
 

@@ -13,6 +13,7 @@ import yfinance as yf
 import warnings
 from orderflow_engine import compute_orderflow_metrics
 from angel_live_feed import fetch_live_quotes_angel, ANGEL_NSE_TOKENS
+from stock_news_guardian import StockNewsGuardian
 
 warnings.filterwarnings("ignore")
 
@@ -145,6 +146,8 @@ def scan_btst_opportunities():
                 cvd > 0 and
                 orderflow_score >= 70):
 
+                news_data = StockNewsGuardian().analyze_stock_catalyst(ticker_clean)
+
                 bullish_signals.append({
                     "Symbol": ticker_clean,
                     "LTP": round(ltp, 2),
@@ -157,7 +160,10 @@ def scan_btst_opportunities():
                     "Recommended_Option": f"BUY {atm_strike} CE",
                     "Entry_Window": "3:20 - 3:25 PM",
                     "Target_Exit": "9:15 - 9:30 AM (+25% to +40%)",
-                    "Feed": data_source
+                    "Feed": data_source,
+                    "News_Sentiment": news_data["Sentiment"],
+                    "Earnings_Hazard": news_data["Earnings_Hazard"],
+                    "Top_News": news_data["Top_Headline"]
                 })
 
             # --- BEARISH ORDERFLOW STBT (PE Strategy) ---
@@ -168,6 +174,8 @@ def scan_btst_opportunities():
                 ltp < vwap and
                 cvd < 0 and
                 orderflow_score <= 30):
+
+                news_data = StockNewsGuardian().analyze_stock_catalyst(ticker_clean)
 
                 bearish_signals.append({
                     "Symbol": ticker_clean,
@@ -181,7 +189,10 @@ def scan_btst_opportunities():
                     "Recommended_Option": f"BUY {atm_strike} PE",
                     "Entry_Window": "3:20 - 3:25 PM",
                     "Target_Exit": "9:15 - 9:30 AM (+25% to +40%)",
-                    "Feed": data_source
+                    "Feed": data_source,
+                    "News_Sentiment": news_data["Sentiment"],
+                    "Earnings_Hazard": news_data["Earnings_Hazard"],
+                    "Top_News": news_data["Top_Headline"]
                 })
 
         except Exception as e:
