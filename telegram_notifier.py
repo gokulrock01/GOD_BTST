@@ -20,6 +20,20 @@ import datetime
 BOT_TOKEN = os.getenv("BTST_BOT_TOKEN") or os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("SWING_BOT_TOKEN")
 CHAT_ID   = os.getenv("BTST_ID") or os.getenv("TELEGRAM_CHAT_ID") or os.getenv("GOD_SWING_ID")
 
+# Fallback to /Users/gokul/Downloads/GOD/config.py if running locally
+if not BOT_TOKEN or not CHAT_ID:
+    god_dir = "/Users/gokul/Downloads/GOD"
+    if os.path.exists(os.path.join(god_dir, "config.py")):
+        try:
+            import sys
+            if god_dir not in sys.path:
+                sys.path.insert(0, god_dir)
+            import config as god_config
+            BOT_TOKEN = getattr(god_config, "TELEGRAM_BOT_TOKEN", BOT_TOKEN)
+            CHAT_ID = getattr(god_config, "TELEGRAM_CHAT_ID", CHAT_ID)
+        except Exception:
+            pass
+
 def send_telegram_message(message_html: str) -> bool:
     """Sends a rich HTML formatted message to Telegram."""
     if not BOT_TOKEN or not CHAT_ID:
@@ -49,10 +63,18 @@ def send_telegram_message(message_html: str) -> bool:
 def format_btst_scan_alert(bullish_setups, bearish_setups):
     """Formats an institutional Telegram alert for the 3:18 PM execution window."""
     now_str = datetime.datetime.now().strftime("%d-%b-%Y %H:%M IST")
+    today_date = datetime.datetime.now().strftime("%Y-%m-%d")
 
-    msg = "<b>⚡ GOD BTST — INSTITUTIONAL OPTIONS DISPATCH 🇮🇳</b>\n"
-    msg += f"<i>NSE F&O | Orderflow & Volume Breakout | {now_str}</i>\n"
-    msg += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+    is_muhurat = (today_date == "2026-11-08" or os.getenv("FORCE_MUHURAT", "").lower() in ["1", "true"])
+
+    if is_muhurat:
+        msg = "<b>🪔 GOD BTST — DIWALI MUHURAT TRADING 2026 (SAMVAT 2083) 🪔</b>\n"
+        msg += f"<i>✨ Special Muhurat Trading Session Scan | {now_str} ✨</i>\n"
+        msg += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+    else:
+        msg = "<b>⚡ GOD BTST — INSTITUTIONAL OPTIONS DISPATCH 🇮🇳</b>\n"
+        msg += f"<i>NSE F&O | Orderflow & Volume Breakout | {now_str}</i>\n"
+        msg += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
 
     total_setups = len(bullish_setups) + len(bearish_setups)
 

@@ -26,7 +26,12 @@ def is_market_day_today():
     """
     ist = pytz.timezone("Asia/Kolkata")
     now_ist = datetime.datetime.now(ist)
+    today_str = now_ist.strftime("%Y-%m-%d")
     
+    # Special Diwali Muhurat Trading Session Check
+    if today_str == "2026-11-08":
+        return True, "Diwali Muhurat Trading Session (Samvat 2083)"
+
     # 1. Weekend Check (5 = Saturday, 6 = Sunday)
     if now_ist.weekday() >= 5:
         return False, f"Weekend ({now_ist.strftime('%A')})"
