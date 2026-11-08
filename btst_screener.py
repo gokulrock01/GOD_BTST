@@ -1,9 +1,11 @@
 """
 High-Speed Bulk Orderflow & Volume BTST Screener for Indian Stock F&O
-Integrates Angel One SmartAPI Live Feed (from /Users/gokul/Downloads/GOD)
-with 5-minute Intraday Orderflow and CVD for high-precision real-time execution.
+Expanded to Top 95 High-Momentum F&O Stocks (Large-Cap & Mid-Cap Leaders)
+Integrates Angel One SmartAPI Live Feed with 5-minute Intraday Orderflow and CVD.
 """
 
+import os
+import json
 import datetime
 import numpy as np
 import pandas as pd
@@ -14,23 +16,16 @@ from angel_live_feed import fetch_live_quotes_angel, ANGEL_NSE_TOKENS
 
 warnings.filterwarnings("ignore")
 
-FO_STOCKS = [
-    "RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "ICICIBANK.NS", "INFY.NS",
-    "SBIN.NS", "BHARTIARTL.NS", "LT.NS", "ITC.NS", "AXISBANK.NS",
-    "SUNPHARMA.NS", "MARUTI.NS", "BAJFINANCE.NS", "HCLTECH.NS",
-    "KOTAKBANK.NS", "TATASTEEL.NS", "NTPC.NS", "POWERGRID.NS", "TITAN.NS",
-    "ASIANPAINT.NS", "M&M.NS", "ADANIENT.NS", "ULTRACEMCO.NS", "ONGC.NS",
-    "WIPRO.NS", "BAJAJFINSV.NS", "JSWSTEEL.NS", "COALINDIA.NS", "HINDALCO.NS"
+# Expanded Top 95 Liquid F&O Universe
+FO_SYMBOLS = list(ANGEL_NSE_TOKENS.keys()) if ANGEL_NSE_TOKENS else [
+    "RELIANCE", "HDFCBANK", "ICICIBANK", "INFY", "TCS", "SBIN", "BHARTIARTL", "AXISBANK",
+    "KOTAKBANK", "LT", "ITC", "MARUTI", "BAJFINANCE", "SUNPHARMA", "TITAN",
+    "ULTRACEMCO", "M&M", "TATASTEEL", "POWERGRID", "NTPC", "HCLTECH", "ASIANPAINT", "COALINDIA",
+    "BAJAJFINSV", "JSWSTEEL", "HINDALCO", "ONGC", "ADANIENT", "ADANIPORTS", "TRENT", "BEL",
+    "HAL", "DIXON", "POLYCAB", "PERSISTENT", "COFORGE", "DLF", "TATAPOWER", "VEDL", "SIEMENS"
 ]
 
-STRIKE_INTERVALS = {
-    "RELIANCE": 20, "TCS": 50, "HDFCBANK": 10, "ICICIBANK": 10, "INFY": 20,
-    "SBIN": 5, "BHARTIARTL": 10, "LT": 20, "ITC": 5, "AXISBANK": 10,
-    "SUNPHARMA": 20, "MARUTI": 100, "BAJFINANCE": 50, "HCLTECH": 20,
-    "KOTAKBANK": 20, "TATASTEEL": 2.5, "NTPC": 5, "POWERGRID": 2.5, "TITAN": 20,
-    "ASIANPAINT": 20, "M&M": 20, "ADANIENT": 50, "ULTRACEMCO": 100, "ONGC": 2.5,
-    "WIPRO": 5, "BAJAJFINSV": 20, "JSWSTEEL": 10, "COALINDIA": 5, "HINDALCO": 10
-}
+FO_STOCKS = [f"{s}.NS" for s in FO_SYMBOLS]
 
 def calculate_rsi(series, period=14):
     delta = series.diff()
@@ -40,18 +35,30 @@ def calculate_rsi(series, period=14):
     return 100 - (100 / (1 + rs))
 
 def get_atm_strike(ticker_clean, ltp):
-    interval = STRIKE_INTERVALS.get(ticker_clean, 10)
+    """Calculates ATM strike based on standard NSE strike spacing rules."""
+    if ltp >= 10000:
+        interval = 100
+    elif ltp >= 2500:
+        interval = 50
+    elif ltp >= 1000:
+        interval = 20
+    elif ltp >= 500:
+        interval = 10
+    elif ltp >= 200:
+        interval = 5
+    else:
+        interval = 2.5
     atm_strike = round(ltp / interval) * interval
     return int(atm_strike) if atm_strike == int(atm_strike) else atm_strike
 
 def scan_btst_opportunities():
     print("================================================================================")
     print("  INSTITUTIONAL ORDERFLOW & VOLUME BTST / STBT SCANNER (NSE F&O)")
-    print(f"  Time of Scan: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"  Universe: Top {len(FO_STOCKS)} Liquid F&O Stocks | Time: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("================================================================================\n")
 
-    # 1. Fetch Angel One SmartAPI live quotes if available
-    print("[*] Connecting to Angel One SmartAPI live market feed...")
+    # 1. Fetch Angel One SmartAPI live quotes for all 95 stocks
+    print(f"[*] Connecting to Angel One SmartAPI for {len(FO_SYMBOLS)} F&O symbols...")
     live_angel_quotes = None
     try:
         live_angel_quotes = fetch_live_quotes_angel()
@@ -62,8 +69,8 @@ def scan_btst_opportunities():
     except Exception as e:
         print(f"  ℹ️ Angel One connection skipped: {e}. Using fallback stream.")
 
-    # 2. Download historical daily & 5m bars for indicators & Orderflow
-    print(f"[*] Downloading market history & 5m Orderflow bars...")
+    # 2. Bulk download daily & 5m history
+    print(f"[*] Bulk downloading historical bars & 5m Orderflow...")
     try:
         daily_bulk = yf.download(FO_STOCKS, period="3mo", interval="1d", group_by="ticker", progress=False)
         intra_bulk = yf.download(FO_STOCKS, period="2d", interval="5m", group_by="ticker", progress=False)
@@ -82,7 +89,7 @@ def scan_btst_opportunities():
             if ticker not in daily_bulk or daily_bulk[ticker].empty:
                 continue
             df_daily = daily_bulk[ticker].dropna()
-            if len(df_daily) < 40:
+            if len(df_daily) < 30:
                 continue
 
             # Prioritize Angel One Live Quotes for real-time precision
