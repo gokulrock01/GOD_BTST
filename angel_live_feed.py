@@ -7,9 +7,14 @@ LTP, Day High, Day Low, and Traded Volume for top F&O stocks.
 import os
 import sys
 import json
-import pyotp
 import requests
-from SmartApi import SmartConnect
+
+try:
+    import pyotp
+    from SmartApi import SmartConnect
+    SMARTAPI_AVAILABLE = True
+except Exception as e:
+    SMARTAPI_AVAILABLE = False
 
 # Top F&O Stocks Angel One NSE Token Mapping
 ANGEL_NSE_TOKENS = {
@@ -71,6 +76,9 @@ def get_angel_credentials():
 
 def get_angel_session():
     """Authenticates with Angel One SmartAPI using TOTP"""
+    if not SMARTAPI_AVAILABLE:
+        return None
+
     api_key, client_code, pin, totp_key = get_angel_credentials()
     if not api_key or not client_code or not pin or not totp_key:
         return None
