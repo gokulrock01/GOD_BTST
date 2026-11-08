@@ -35,6 +35,28 @@ def calculate_rsi(series, period=14):
     rs = gain / (loss + 1e-9)
     return 100 - (100 / (1 + rs))
 
+def get_nifty_regime():
+    """Checks overall market tide on Nifty 50 index."""
+    try:
+        nifty = yf.download("^NSEI", period="1mo", interval="1d", progress=False)
+        if isinstance(nifty.columns, pd.MultiIndex):
+            nifty.columns = [col[0] for col in nifty.columns]
+        nifty['EMA20'] = nifty['Close'].ewm(span=20, adjust=False).mean()
+        ltp = float(nifty['Close'].iloc[-1])
+        open_p = float(nifty['Open'].iloc[-1])
+        ema20 = float(nifty['EMA20'].iloc[-1])
+        is_bullish = (ltp > ema20) and (ltp >= open_p)
+        is_bearish = (ltp < ema20) and (ltp <= open_p)
+        return {
+            "LTP": round(ltp, 2),
+            "EMA20": round(ema20, 2),
+            "Bullish_Regime": is_bullish,
+            "Bearish_Regime": is_bearish,
+            "Status": "BULLISH TIDE 🟢" if is_bullish else ("BEARISH TIDE 🔴" if is_bearish else "CHOPPY/NEUTRAL 🟡")
+        }
+    except Exception:
+        return {"Bullish_Regime": True, "Bearish_Regime": True, "Status": "UNAVAILABLE"}
+
 def get_atm_strike(ticker_clean, ltp):
     """Calculates ATM strike based on standard NSE strike spacing rules."""
     if ltp >= 10000:
@@ -58,7 +80,11 @@ def scan_btst_opportunities():
     print(f"  Universe: Top {len(FO_STOCKS)} Liquid F&O Stocks | Time: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("================================================================================\n")
 
-    # 1. Fetch Angel One SmartAPI live quotes for all 95 stocks
+    # 1. Fetch Nifty Market Tide / Regime Filter
+    nifty_info = get_nifty_regime()
+    print(f"[*] Macro Market Tide: NIFTY 50 is {nifty_info['Status']} (LTP: {nifty_info.get('LTP', 'N/A')})")
+
+    # 2. Fetch Angel One SmartAPI live quotes for all 95 stocks
     print(f"[*] Connecting to Angel One SmartAPI for {len(FO_SYMBOLS)} F&O symbols...")
     live_angel_quotes = None
     try:
@@ -138,9 +164,10 @@ def scan_btst_opportunities():
             atm_strike = get_atm_strike(ticker_clean, ltp)
 
             # --- BULLISH ORDERFLOW BTST (CE Strategy) ---
-            if (close_position >= 0.85 and 
-                pct_change >= 0.8 and 
-                vol_ratio >= 1.25 and 
+            if (nifty_info["Bullish_Regime"] and
+                close_position >= 0.88 and 
+                (1.0 <= pct_change <= 4.5) and 
+                vol_ratio >= 1.3 and 
                 ltp > ema20 > ema50 and 
                 ltp > vwap and
                 cvd > 0 and
@@ -167,9 +194,10 @@ def scan_btst_opportunities():
                 })
 
             # --- BEARISH ORDERFLOW STBT (PE Strategy) ---
-            if (close_position <= 0.15 and 
-                pct_change <= -0.8 and 
-                vol_ratio >= 1.25 and 
+            if (nifty_info["Bearish_Regime"] and
+                close_position <= 0.15 and 
+                (-4.5 <= pct_change <= -1.0) and 
+                vol_ratio >= 1.3 and 
                 ltp < ema20 < ema50 and 
                 ltp < vwap and
                 cvd < 0 and
