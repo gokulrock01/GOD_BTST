@@ -17,8 +17,8 @@ import os
 import requests
 import datetime
 
-BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("SWING_BOT_TOKEN")
-CHAT_ID   = os.getenv("TELEGRAM_CHAT_ID") or os.getenv("GOD_SWING_ID")
+BOT_TOKEN = os.getenv("BTST_BOT_TOKEN") or os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("SWING_BOT_TOKEN")
+CHAT_ID   = os.getenv("BTST_ID") or os.getenv("TELEGRAM_CHAT_ID") or os.getenv("GOD_SWING_ID")
 
 def send_telegram_message(message_html: str) -> bool:
     """Sends a rich HTML formatted message to Telegram."""

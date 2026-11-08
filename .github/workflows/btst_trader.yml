@@ -56,8 +56,8 @@ jobs:
 
       - name: Run BTST Orderflow Automation
         env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN || secrets.SWING_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID || secrets.GOD_SWING_ID }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.BTST_BOT_TOKEN || secrets.TELEGRAM_BOT_TOKEN || secrets.SWING_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.BTST_ID || secrets.TELEGRAM_CHAT_ID || secrets.GOD_SWING_ID }}
         run: |
           python automation_engine.py --mode ${{ steps.exec-mode.outputs.mode }}
 
