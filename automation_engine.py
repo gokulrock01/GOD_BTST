@@ -38,6 +38,10 @@ def is_market_day_today():
 
     return True, "Active Trading Day"
 
+def ensure_signals_dir():
+    """Ensures the signals directory exists."""
+    os.makedirs(SIGNALS_DIR, exist_ok=True)
+
 def update_heartbeat(mode: str):
     """Updates heartbeat timestamp to prevent GitHub Actions cron auto-disable."""
     ensure_signals_dir()

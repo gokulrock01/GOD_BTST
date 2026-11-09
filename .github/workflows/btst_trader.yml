@@ -67,6 +67,7 @@ jobs:
           python automation_engine.py --mode ${{ steps.exec-mode.outputs.mode }}
 
       - name: Commit and push updated signals
+        if: always()
         run: |
           git config --global user.name "GodBTST-Bot"
           git config --global user.email "bot@godbtst.local"
