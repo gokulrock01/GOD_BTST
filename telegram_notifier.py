@@ -17,6 +17,9 @@ import os
 import requests
 import datetime
 
+BOT_TOKEN = None
+CHAT_ID = None
+
 # Check local config in GOD_BTST first
 btst_dir = os.path.dirname(os.path.abspath(__file__))
 if os.path.exists(os.path.join(btst_dir, "config.py")):

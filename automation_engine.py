@@ -35,11 +35,13 @@ def is_market_day_today():
     # 1. NSE Holiday Guard Check
     try:
         from nse_holiday_guard import is_market_open_today
-        is_open, h_reason = is_market_open_today(now_ist.date())
+        res = is_market_open_today(now_ist.date())
+        is_open = res[0]
+        h_reason = res[1] if len(res) > 1 else "Holiday"
         if not is_open:
             return False, h_reason
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"  ⚠️ Holiday check error: {e}")
 
     # 2. Weekend Check (5 = Saturday, 6 = Sunday)
     if now_ist.weekday() >= 5:
@@ -99,8 +101,13 @@ def run_315pm_scan(force=False):
     alert_html = format_btst_scan_alert(bullish_signals, bearish_signals)
     send_telegram_message(alert_html)
 
-def run_915am_exit():
+def run_915am_exit(force=False):
     update_heartbeat("morning-exit")
+    is_open, reason = is_market_day_today()
+    if not is_open and not force:
+        print(f"[i] Market is closed today: {reason}. Skipping morning exit monitor.")
+        return
+
     now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"[{now_str}] 🔔 Triggering 9:15 AM Market Opening Exit Monitor...")
 
@@ -126,7 +133,7 @@ def main():
     if args.mode == "scan":
         run_315pm_scan(force=args.force)
     elif args.mode == "morning-exit":
-        run_915am_exit()
+        run_915am_exit(force=args.force)
 
 if __name__ == "__main__":
     main()

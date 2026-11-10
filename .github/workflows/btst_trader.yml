@@ -23,6 +23,8 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write
+    env:
+      TZ: 'Asia/Kolkata'
 
     steps:
       - name: Check out repository
@@ -46,12 +48,19 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "mode=${{ github.event.inputs.mode }}" >> $GITHUB_OUTPUT
           else
-            # Check current hour in UTC
-            CURRENT_HOUR=$(date -u +'%H')
-            if [ "$CURRENT_HOUR" -eq 9 ] || [ "$CURRENT_HOUR" -eq 10 ]; then
+            # Check current time in IST
+            CURRENT_TIME=$(date +'%H:%M')
+            echo "Current IST time: $CURRENT_TIME"
+            # 14:45 to 16:00 IST -> 3:15 PM scan
+            if [[ "$CURRENT_TIME" > "14:45" && "$CURRENT_TIME" < "16:00" ]]; then
               echo "mode=scan" >> $GITHUB_OUTPUT
-            else
+            # 09:00 to 10:30 IST -> 9:15 AM morning-exit
+            elif [[ "$CURRENT_TIME" > "09:00" && "$CURRENT_TIME" < "10:30" ]]; then
               echo "mode=morning-exit" >> $GITHUB_OUTPUT
+            else
+              echo "⚠️ Current IST time ($CURRENT_TIME) is outside valid trading windows (09:15 exit or 15:15 scan)."
+              echo "Run was delayed or triggered outside market hours. Aborting to protect capital."
+              echo "mode=skip" >> $GITHUB_OUTPUT
             fi
           fi
 
@@ -64,7 +73,11 @@ jobs:
           ANGEL_PIN: ${{ secrets.ANGEL_PIN }}
           ANGEL_TOTP_KEY: ${{ secrets.ANGEL_TOTP_KEY }}
         run: |
-          python automation_engine.py --mode ${{ steps.exec-mode.outputs.mode }}
+          if [ "${{ steps.exec-mode.outputs.mode }}" = "skip" ]; then
+            echo "⏭️ Execution skipped because trigger arrived outside market windows."
+          else
+            python automation_engine.py --mode ${{ steps.exec-mode.outputs.mode }}
+          fi
 
       - name: Commit and push updated signals
         if: always()
