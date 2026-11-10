@@ -174,6 +174,8 @@ def scan_btst_opportunities():
                 orderflow_score >= 70):
 
                 news_data = StockNewsGuardian().analyze_stock_catalyst(ticker_clean)
+                is_earnings = news_data["Earnings_Hazard"]
+                rec_option = f"⚠️ AVOID NAKED CE (Earnings Imminent)" if is_earnings else f"BUY {atm_strike} CE"
 
                 bullish_signals.append({
                     "Symbol": ticker_clean,
@@ -184,12 +186,12 @@ def scan_btst_opportunities():
                     "Vol_Ratio": f"{vol_ratio:.1f}x",
                     "OF_Score": f"{orderflow_score:.0f}/100",
                     "Power_Hour_Delta": f"{power_hour_delta:+,}",
-                    "Recommended_Option": f"BUY {atm_strike} CE",
+                    "Recommended_Option": rec_option,
                     "Entry_Window": "3:20 - 3:25 PM",
-                    "Target_Exit": "9:15 - 9:30 AM (+25% to +40%)",
+                    "Target_Exit": "9:15 - 9:30 AM (+25% to +40%)" if not is_earnings else "Trade Post-Earnings after 9:30 AM",
                     "Feed": data_source,
                     "News_Sentiment": news_data["Sentiment"],
-                    "Earnings_Hazard": news_data["Earnings_Hazard"],
+                    "Earnings_Hazard": is_earnings,
                     "Top_News": news_data["Top_Headline"]
                 })
 
@@ -204,6 +206,8 @@ def scan_btst_opportunities():
                 orderflow_score <= 30):
 
                 news_data = StockNewsGuardian().analyze_stock_catalyst(ticker_clean)
+                is_earnings = news_data["Earnings_Hazard"]
+                rec_option = f"⚠️ AVOID NAKED PE (Earnings Imminent)" if is_earnings else f"BUY {atm_strike} PE"
 
                 bearish_signals.append({
                     "Symbol": ticker_clean,
@@ -214,12 +218,12 @@ def scan_btst_opportunities():
                     "Vol_Ratio": f"{vol_ratio:.1f}x",
                     "OF_Score": f"{orderflow_score:.0f}/100",
                     "Power_Hour_Delta": f"{power_hour_delta:+,}",
-                    "Recommended_Option": f"BUY {atm_strike} PE",
+                    "Recommended_Option": rec_option,
                     "Entry_Window": "3:20 - 3:25 PM",
-                    "Target_Exit": "9:15 - 9:30 AM (+25% to +40%)",
+                    "Target_Exit": "9:15 - 9:30 AM (+25% to +40%)" if not is_earnings else "Trade Post-Earnings after 9:30 AM",
                     "Feed": data_source,
                     "News_Sentiment": news_data["Sentiment"],
-                    "Earnings_Hazard": news_data["Earnings_Hazard"],
+                    "Earnings_Hazard": is_earnings,
                     "Top_News": news_data["Top_Headline"]
                 })
 
