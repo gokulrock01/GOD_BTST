@@ -32,7 +32,16 @@ def is_market_day_today():
     if today_str == "2026-11-08":
         return True, "Diwali Muhurat Trading Session (Samvat 2083)"
 
-    # 1. Weekend Check (5 = Saturday, 6 = Sunday)
+    # 1. NSE Holiday Guard Check
+    try:
+        from nse_holiday_guard import is_market_open_today
+        is_open, h_reason = is_market_open_today(now_ist.date())
+        if not is_open:
+            return False, h_reason
+    except Exception:
+        pass
+
+    # 2. Weekend Check (5 = Saturday, 6 = Sunday)
     if now_ist.weekday() >= 5:
         return False, f"Weekend ({now_ist.strftime('%A')})"
 
