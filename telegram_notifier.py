@@ -17,8 +17,23 @@ import os
 import requests
 import datetime
 
-BOT_TOKEN = os.getenv("BTST_BOT_TOKEN") or os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("SWING_BOT_TOKEN")
-CHAT_ID   = os.getenv("BTST_ID") or os.getenv("TELEGRAM_CHAT_ID") or os.getenv("GOD_SWING_ID")
+# Check local config in GOD_BTST first
+btst_dir = os.path.dirname(os.path.abspath(__file__))
+if os.path.exists(os.path.join(btst_dir, "config.py")):
+    try:
+        import sys
+        if btst_dir not in sys.path:
+            sys.path.insert(0, btst_dir)
+        import config as btst_config
+        BOT_TOKEN = getattr(btst_config, "BTST_BOT_TOKEN", None) or getattr(btst_config, "TELEGRAM_BOT_TOKEN", None)
+        CHAT_ID   = getattr(btst_config, "BTST_ID", None) or getattr(btst_config, "TELEGRAM_CHAT_ID", None)
+    except Exception:
+        pass
+
+if not BOT_TOKEN:
+    BOT_TOKEN = os.getenv("BTST_BOT_TOKEN") or os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("SWING_BOT_TOKEN")
+if not CHAT_ID:
+    CHAT_ID   = os.getenv("BTST_ID") or os.getenv("TELEGRAM_CHAT_ID") or os.getenv("GOD_SWING_ID")
 
 # Fallback to /Users/gokul/Downloads/GOD/config.py if running locally
 if not BOT_TOKEN or not CHAT_ID:
@@ -29,8 +44,8 @@ if not BOT_TOKEN or not CHAT_ID:
             if god_dir not in sys.path:
                 sys.path.insert(0, god_dir)
             import config as god_config
-            BOT_TOKEN = getattr(god_config, "TELEGRAM_BOT_TOKEN", BOT_TOKEN)
-            CHAT_ID = getattr(god_config, "TELEGRAM_CHAT_ID", CHAT_ID)
+            BOT_TOKEN = getattr(god_config, "BTST_BOT_TOKEN", None) or getattr(god_config, "TELEGRAM_BOT_TOKEN", BOT_TOKEN)
+            CHAT_ID   = getattr(god_config, "BTST_ID", None) or getattr(god_config, "TELEGRAM_CHAT_ID", CHAT_ID)
         except Exception:
             pass
 
