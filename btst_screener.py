@@ -47,15 +47,17 @@ def get_nifty_regime():
         ema20 = float(nifty['EMA20'].iloc[-1])
         is_bullish = (ltp > ema20) and (ltp >= open_p)
         is_bearish = (ltp < ema20) and (ltp <= open_p)
+        is_neutral = not is_bullish and not is_bearish
         return {
             "LTP": round(ltp, 2),
             "EMA20": round(ema20, 2),
             "Bullish_Regime": is_bullish,
             "Bearish_Regime": is_bearish,
+            "Neutral_Regime": is_neutral,
             "Status": "BULLISH TIDE 🟢" if is_bullish else ("BEARISH TIDE 🔴" if is_bearish else "CHOPPY/NEUTRAL 🟡")
         }
     except Exception:
-        return {"Bullish_Regime": True, "Bearish_Regime": True, "Status": "UNAVAILABLE"}
+        return {"Bullish_Regime": True, "Bearish_Regime": True, "Neutral_Regime": False, "Status": "UNAVAILABLE"}
 
 def get_atm_strike(ticker_clean, ltp):
     """Calculates ATM strike based on standard NSE strike spacing rules."""
@@ -164,7 +166,18 @@ def scan_btst_opportunities():
             atm_strike = get_atm_strike(ticker_clean, ltp)
 
             # --- BULLISH ORDERFLOW BTST (CE Strategy) ---
-            if (nifty_info["Bullish_Regime"] and
+            # Triggers on either:
+            # 1. Macro Bullish Nifty Tide + Solid Setup (OF >= 70, Close Pos >= 0.88)
+            # 2. Choppy/Neutral Nifty Tide + Super-Conviction Breakout (OF >= 80, Close Pos >= 0.90, Vol >= 1.5x)
+            is_macro_bull = nifty_info.get("Bullish_Regime", False)
+            is_high_conviction = (
+                nifty_info.get("Neutral_Regime", False) and
+                orderflow_score >= 80 and
+                close_position >= 0.90 and
+                vol_ratio >= 1.5
+            )
+
+            if (is_macro_bull or is_high_conviction) and (
                 close_position >= 0.88 and 
                 (1.0 <= pct_change <= 4.5) and 
                 vol_ratio >= 1.3 and 
