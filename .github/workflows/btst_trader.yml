@@ -1,11 +1,10 @@
 name: Automated BTST Options Trader (NSE)
 
 on:
-  schedule:
-    # 09:45 AM UTC = 3:15 PM IST (Monday to Friday) - EOD 3:15 PM BTST Screener
-    - cron: '45 9 * * 1-5'
-    # 03:45 AM UTC = 9:15 AM IST (Monday to Friday) - Market Open Exit Monitor
-    - cron: '45 3 * * 1-5'
+  # Automated schedule disabled per user preference (Focusing exclusively on Nifty Ratio Backspread)
+  # schedule:
+  #   - cron: '45 9 * * 1-5'
+  #   - cron: '45 3 * * 1-5'
   workflow_dispatch:
     inputs:
       mode:
