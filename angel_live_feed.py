@@ -31,7 +31,7 @@ TOKEN_TO_SYMBOL = {v: k for k, v in ANGEL_NSE_TOKENS.items()}
 def get_angel_credentials():
     """Reads credentials from env vars or from /Users/gokul/Downloads/GOD/config.py"""
     api_key = os.getenv("ANGEL_API_KEY")
-    client_code = os.getenv("ANGEL_CLIENT_CODE")
+    client_code = os.getenv("ANGEL_CLIENT_CODE") or os.getenv("ANGEL_CLIENT_ID")
     pin = os.getenv("ANGEL_PIN")
     totp_key = os.getenv("ANGEL_TOTP_KEY")
 
