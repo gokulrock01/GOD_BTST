@@ -75,7 +75,7 @@ jobs:
           if [ "${{ steps.exec-mode.outputs.mode }}" = "skip" ]; then
             echo "⏭️ Execution skipped because trigger arrived outside market windows."
           else
-            python automation_engine.py --mode ${{ steps.exec-mode.outputs.mode }}
+            python automation_engine.py --mode ${{ steps.exec-mode.outputs.mode }} --target index
           fi
 
       - name: Commit and push updated signals

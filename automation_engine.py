@@ -14,6 +14,7 @@ import datetime
 import pytz
 import yfinance as yf
 from btst_screener import scan_btst_opportunities
+from index_btst_engine import evaluate_academic_index_btst, format_asymmetric_telegram_dispatch
 from telegram_notifier import send_telegram_message, format_btst_scan_alert, format_morning_exit_alert
 
 SIGNALS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "signals")
@@ -67,7 +68,7 @@ def update_heartbeat(mode: str):
     with open(heartbeat_path, "w") as f:
         json.dump(data, f, indent=4)
 
-def run_315pm_scan(force=False):
+def run_315pm_scan(force=False, target="index"):
     update_heartbeat("scan")
     is_open, reason = is_market_day_today()
     if not is_open and not force:
@@ -75,8 +76,20 @@ def run_315pm_scan(force=False):
         return
 
     now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"[{now_str}] 🚀 Triggering 3:15 PM Institutional Orderflow BTST Screener...")
+    
+    if target == "index":
+        print(f"[{now_str}] 🚀 Triggering 3:15 PM Asymmetric Index BTST Sentinel (Nifty/BankNifty/Sensex)...")
+        index_setups = evaluate_academic_index_btst()
 
+        with open(ORDERS_FILE, "w") as f:
+            json.dump(index_setups, f, indent=4)
+        print(f"[+] Active Index setups saved to '{ORDERS_FILE}'")
+
+        alert_html = format_asymmetric_telegram_dispatch(index_setups)
+        send_telegram_message(alert_html)
+        return
+
+    print(f"[{now_str}] 🚀 Triggering 3:15 PM Institutional Orderflow Stock Screener...")
     bullish_signals, bearish_signals = scan_btst_opportunities()
 
     # Sort candidates by volume expansion & orderflow score
@@ -126,12 +139,14 @@ def main():
     parser = argparse.ArgumentParser(description="GOD BTST Automation Engine")
     parser.add_argument("--mode", choices=["scan", "morning-exit"], default="scan",
                         help="Execution mode: 'scan' (3:15 PM) or 'morning-exit' (9:15 AM)")
+    parser.add_argument("--target", choices=["index", "stock"], default="index",
+                        help="Trading target: 'index' (Nifty/BankNifty/Sensex) or 'stock'")
     parser.add_argument("--force", action="store_true", default=False,
                         help="Force execution even if market is closed today")
     args = parser.parse_args()
 
     if args.mode == "scan":
-        run_315pm_scan(force=args.force)
+        run_315pm_scan(force=args.force, target=args.target)
     elif args.mode == "morning-exit":
         run_915am_exit(force=args.force)
 
