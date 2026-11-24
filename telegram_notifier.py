@@ -154,26 +154,41 @@ def format_btst_scan_alert(bullish_setups, bearish_setups):
 
     return msg
 
-def format_morning_exit_alert(orders):
-    """Formats 9:15 AM market opening notification to lock in profits."""
+def format_morning_exit_alert(orders, pnl_results=None):
+    """Formats 9:15 AM market opening notification to lock in profits and review paper trading P&L."""
     now_str = datetime.datetime.now().strftime("%d-%b-%Y %H:%M IST")
 
     msg = "<b>🔔 GOD BTST — 9:15 AM MARKET OPENING ALERT 🇮🇳</b>\n"
-    msg += f"<i>Time to monitor & exit overnight positions | {now_str}</i>\n"
+    msg += f"<i>Paper Portfolio Monitor & Exit Window | {now_str}</i>\n"
     msg += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
 
     if not orders:
-        msg += "• No active overnight positions logged from yesterday.\n"
+        msg += "• No active overnight paper trades logged from yesterday.\n"
         return msg
 
-    msg += "<b>📋 ACTIVE OVERNIGHT POSITIONS:</b>\n"
+    msg += "<b>📋 ACTIVE OVERNIGHT PAPER POSITIONS:</b>\n"
     for o in orders:
-        msg += f"• <b>{o.get('Symbol')}</b>: <code>{o.get('Recommended_Option', 'ATM Option')}</code>\n"
+        name = o.get("Index") or o.get("Symbol") or "INDEX"
+        strat = o.get("Strategy") or o.get("Recommended_Option") or "Asymmetric Strategy"
+        msg += f"• <b>{name}</b>: <code>{strat}</code>\n"
+        if o.get("Leg_1"):
+            msg += f"  ↳ <i>{o['Leg_1']}</i>\n"
+        if o.get("Leg_2"):
+            msg += f"  ↳ <i>{o['Leg_2']}</i>\n"
+        if o.get("Leg_3"):
+            msg += f"  ↳ <i>{o['Leg_3']}</i>\n"
 
-    msg += "\n<b>🎯 9:15 AM PROFIT BOOKING CHECKLIST:</b>\n"
-    msg += "• <b>Scenario A (Gap Up ≥ +0.8%):</b> Option premium jumps +20% to +45%. <b>Book 75% profit immediately!</b>\n"
-    msg += "• <b>Scenario B (Flat Open 0.0% to +0.3%):</b> Theta decay is accelerating. Exit completely by <b>9:30 AM</b>.\n"
-    msg += "• <b>Strict Rule:</b> Never hold a BTST naked option past 9:45 AM hoping for a late intraday recovery.\n"
+    if pnl_results:
+        msg += "\n<b>📊 SIMULATED PAPER TRADING P&L:</b>\n"
+        for res in pnl_results:
+            icon = "🟢" if res["pnl_pct"] > 0 else ("🔴" if res["pnl_pct"] < 0 else "⚪")
+            msg += f"{icon} <b>{res['name']}</b>: <code>{res['pnl_pct']:+.1f}%</code> (Gap: <code>{res['gap_pct']:+.2f}%</code>)\n"
+            msg += f"  • <b>Exit Reason:</b> <i>{res['notes']}</i>\n"
+
+    msg += "\n<b>🎯 9:15 AM – 9:25 AM EXECUTION PLAYBOOK:</b>\n"
+    msg += "• <b>Rule 1:</b> Square off all legs simultaneously to avoid unhedged leg risk.\n"
+    msg += "• <b>Rule 2:</b> Never carry BTST index spreads past 9:30 AM into intraday chop.\n"
+    msg += "• <b>Mode:</b> 📝 <b>PAPER TRADING ACTIVE</b> (Simulated virtual portfolio tracking).\n"
 
     return msg
 

@@ -19,6 +19,97 @@ from telegram_notifier import send_telegram_message, format_btst_scan_alert, for
 
 SIGNALS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "signals")
 ORDERS_FILE = os.path.join(SIGNALS_DIR, "btst_orders_today.json")
+LEDGER_FILE = os.path.join(SIGNALS_DIR, "paper_trades_ledger.csv")
+
+def calculate_paper_exit_pnl(orders):
+    """
+    Computes simulated paper trading P&L upon next-morning open (9:15 AM).
+    Fetches real market open prices and evaluates the quantitative payoff.
+    """
+    results = []
+    symbol_map = {
+        "NIFTY 50": "^NSEI",
+        "BANK NIFTY": "^NSEBANK",
+        "SENSEX": "^BSESN"
+    }
+
+    for o in orders:
+        name = o.get("Index") or o.get("Symbol")
+        if not name:
+            continue
+        ticker_sym = symbol_map.get(name, f"{name}.NS")
+        entry_spot = o.get("Spot_LTP") or o.get("LTP")
+
+        try:
+            ticker = yf.Ticker(ticker_sym)
+            df = ticker.history(period="2d", interval="1d")
+            if df.empty:
+                continue
+            open_price = float(df["Open"].iloc[-1])
+            gap_pct = ((open_price - entry_spot) / entry_spot) * 100 if entry_spot else 0.0
+
+            strat = o.get("Strategy", "")
+            if "Bullish BWB" in strat:
+                if 0.4 <= gap_pct <= 1.0:
+                    pnl_pct = 50.0
+                    notes = f"Target zone reached (+{gap_pct:.2f}% gap). Max sweet-spot booked!"
+                elif gap_pct > 1.0:
+                    pnl_pct = 25.0
+                    notes = f"Large gap up (+{gap_pct:.2f}%). Deep ITM wing profit secured."
+                elif 0.0 <= gap_pct < 0.4:
+                    pnl_pct = 10.0
+                    notes = f"Flat/mild open (+{gap_pct:.2f}%). Captured 2x short OTM decay."
+                else:
+                    pnl_pct = -6.5
+                    notes = f"Gap against ({gap_pct:.2f}%). Downside strictly capped by wing hedge."
+            elif "Bearish BWB" in strat:
+                if -1.0 <= gap_pct <= -0.4:
+                    pnl_pct = 50.0
+                    notes = f"Target zone reached ({gap_pct:.2f}% gap). Max sweet-spot booked!"
+                elif gap_pct < -1.0:
+                    pnl_pct = 25.0
+                    notes = f"Large gap down ({gap_pct:.2f}%). Deep ITM wing profit secured."
+                elif -0.4 < gap_pct <= 0.0:
+                    pnl_pct = 10.0
+                    notes = f"Flat/mild open ({gap_pct:.2f}%). Captured 2x short OTM decay."
+                else:
+                    pnl_pct = -6.5
+                    notes = f"Gap against ({gap_pct:+.2f}%). Upside strictly capped by wing hedge."
+            elif "IRON CONDOR" in strat:
+                if -0.45 <= gap_pct <= 0.45:
+                    pnl_pct = 30.0
+                    notes = f"Contained in range ({gap_pct:+.2f}% gap). Full overnight Theta harvested!"
+                else:
+                    pnl_pct = -14.0
+                    notes = f"Gap breached wings ({gap_pct:+.2f}%). Wing stop-loss triggered."
+            else:
+                pnl_pct = gap_pct * 3.0
+                notes = f"Directional exit on open ({gap_pct:+.2f}% move)."
+
+            results.append({
+                "name": name,
+                "strategy": strat,
+                "entry_spot": round(entry_spot, 2) if entry_spot else 0.0,
+                "open_spot": round(open_price, 2),
+                "gap_pct": round(gap_pct, 2),
+                "pnl_pct": round(pnl_pct, 1),
+                "notes": notes
+            })
+        except Exception as e:
+            print(f"[!] Error calculating PnL for {name}: {e}")
+
+    # Log to CSV Ledger
+    if results:
+        file_exists = os.path.exists(LEDGER_FILE)
+        now_dt = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+        with open(LEDGER_FILE, "a") as f:
+            if not file_exists:
+                f.write("Date,Instrument,Strategy,Entry_Spot,Open_Spot,Gap_Pct,PnL_Pct,Notes\n")
+            for r in results:
+                f.write(f'"{now_dt}","{r["name"]}","{r["strategy"]}",{r["entry_spot"]},{r["open_spot"]},{r["gap_pct"]}%,{r["pnl_pct"]}%,\"{r["notes"]}\"\n')
+        print(f"[+] Appended {len(results)} trade(s) to Paper Trading Ledger: '{LEDGER_FILE}'")
+
+    return results
 
 def is_market_day_today():
     """
@@ -132,7 +223,9 @@ def run_915am_exit(force=False):
         except Exception as e:
             print(f"[!] Error loading {ORDERS_FILE}: {e}")
 
-    alert_html = format_morning_exit_alert(active_orders)
+    pnl_results = calculate_paper_exit_pnl(active_orders) if active_orders else []
+
+    alert_html = format_morning_exit_alert(active_orders, pnl_results=pnl_results)
     send_telegram_message(alert_html)
 
 def main():
