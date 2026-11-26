@@ -1,1 +1,17 @@
-[]
+[
+    {
+        "Index": "NIFTY 50",
+        "Regime": "CONSOLIDATION / THETA HARVEST \u23f3",
+        "Bias": "DELTA-NEUTRAL / THETA POSITIVE \ud83d\udfe1",
+        "Spot_LTP": 25897.4,
+        "Range_Pos_%": 67.9,
+        "Day_Change_%": 0.09,
+        "Strategy": "OVERNIGHT VRP IRON CONDOR (Defined Risk)",
+        "Leg_1": "SELL 26050 CE & BUY 26150 CE (Call Spread)",
+        "Leg_2": "SELL 25750 PE & BUY 25650 PE (Put Spread)",
+        "Asymmetric_Payoff": "\u2022 Grounded in SSRN VRP literature (Papagelis & Dotsis).\n\u2022 Overnight gap insurance is statistically overpriced.\n\u2022 Harvests 25% - 35% overnight Theta decay when gap <= 0.50%!",
+        "Execution_Window": "3:20 PM - 3:26 PM",
+        "Exit_Window": "9:15 AM - 9:25 AM Next Morning",
+        "Actionable_Rule": "Square off all 4 legs at 9:15 AM open to capture overnight time decay."
+    }
+]

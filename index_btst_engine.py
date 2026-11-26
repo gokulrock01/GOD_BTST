@@ -190,7 +190,7 @@ def evaluate_academic_index_btst():
                     "Asymmetric_Payoff": (
                         "• Grounded in SSRN VRP literature (Papagelis & Dotsis).\n"
                         "• Overnight gap insurance is statistically overpriced.\n"
-                        "• Harvests 25% - 35% overnight Theta decay when gap <= 0.50%!"
+                        "• Harvests 25% - 35% overnight Theta decay when gap &lt;= 0.50%!"
                     ),
                     "Execution_Window": "3:20 PM - 3:26 PM",
                     "Exit_Window": "9:15 AM - 9:25 AM Next Morning",
@@ -231,6 +231,7 @@ def format_asymmetric_telegram_dispatch(setups):
     msg += "<b>⏰ EXECUTION WINDOW:</b> <code>3:20 PM – 3:26 PM</code>\n\n"
 
     for idx, s in enumerate(setups, 1):
+        payoff_clean = str(s.get('Asymmetric_Payoff', '')).replace('<=', '&lt;=').replace('>=', '&gt;=')
         msg += f"<b>#{idx} {s['Index']} — {s['Regime']}</b>\n"
         msg += f"• <b>Strategy:</b> <code>{s['Strategy']}</code>\n"
         msg += f"• <b>Spot LTP:</b> ₹{s['Spot_LTP']:,} (<code>{s['Day_Change_%']:+}%</code> | Range: {s['Range_Pos_%']}%)\n"
@@ -238,7 +239,7 @@ def format_asymmetric_telegram_dispatch(setups):
         msg += f"• <b>Leg 2:</b> <code>{s['Leg_2']}</code>\n"
         if s.get("Leg_3"):
             msg += f"• <b>Leg 3:</b> <code>{s['Leg_3']}</code>\n"
-        msg += f"\n💡 <b>ASYMMETRIC PAYOFF EDGE:</b>\n{s['Asymmetric_Payoff']}\n"
+        msg += f"\n💡 <b>ASYMMETRIC PAYOFF EDGE:</b>\n{payoff_clean}\n"
         msg += f"• <b>Exit Window:</b> <code>{s['Exit_Window']}</code>\n\n"
 
     msg += "<b>🛡️ QUANTITATIVE RISK PRINCIPLES:</b>\n"

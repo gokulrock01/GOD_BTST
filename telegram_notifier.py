@@ -53,7 +53,7 @@ if not BOT_TOKEN or not CHAT_ID:
             pass
 
 def send_telegram_message(message_html: str) -> bool:
-    """Sends a rich HTML formatted message to Telegram."""
+    """Sends a rich HTML formatted message to Telegram with fallback to plain text."""
     if not BOT_TOKEN or not CHAT_ID:
         print("  ℹ️ Telegram credentials not configured in env. Skipping dispatch.")
         return False
@@ -72,8 +72,22 @@ def send_telegram_message(message_html: str) -> bool:
             print("  ✅ Telegram notification dispatched successfully!")
             return True
         else:
-            print(f"  ⚠️ Telegram API error ({resp.status_code}): {resp.text}")
-            return False
+            print(f"  ⚠️ Telegram HTML API error ({resp.status_code}): {resp.text}")
+            # Fallback to plain text if HTML entity parsing failed
+            import re
+            plain_text = re.sub(r'<[^>]+>', '', message_html)
+            fallback_payload = {
+                "chat_id": CHAT_ID,
+                "text": plain_text,
+                "disable_web_page_preview": True
+            }
+            fb_resp = requests.post(url, json=fallback_payload, timeout=10)
+            if fb_resp.status_code == 200:
+                print("  ✅ Telegram notification dispatched successfully (via plain-text fallback)!")
+                return True
+            else:
+                print(f"  ❌ Fallback dispatch also failed ({fb_resp.status_code}): {fb_resp.text}")
+                return False
     except Exception as e:
         print(f"  ⚠️ Failed to send Telegram message: {e}")
         return False
