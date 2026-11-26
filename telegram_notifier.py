@@ -193,11 +193,16 @@ def format_morning_exit_alert(orders, pnl_results=None):
             msg += f"  ↳ <i>{o['Leg_3']}</i>\n"
 
     if pnl_results:
-        msg += "\n<b>📊 SIMULATED PAPER TRADING P&L:</b>\n"
+        msg += "\n<b>📊 SIMULATED PAPER TRADING P&amp;L (1 LOT):</b>\n"
         for res in pnl_results:
             icon = "🟢" if res["pnl_pct"] > 0 else ("🔴" if res["pnl_pct"] < 0 else "⚪")
-            msg += f"{icon} <b>{res['name']}</b>: <code>{res['pnl_pct']:+.1f}%</code> (Gap: <code>{res['gap_pct']:+.2f}%</code>)\n"
+            inr_str = f"₹{res.get('pnl_inr', 0):+,.0f}"
+            msg += f"{icon} <b>{res['name']}</b>: <code>{inr_str} ({res['pnl_pct']:+.1f}%)</code> | Gap: <code>{res['gap_pct']:+.2f}%</code>\n"
             msg += f"  • <b>Exit Reason:</b> <i>{res['notes']}</i>\n"
+        last_bal = pnl_results[-1].get("portfolio_balance")
+        tot_pnl = pnl_results[-1].get("total_pnl_inr")
+        if last_bal is not None:
+            msg += f"\n💼 <b>PAPER PORTFOLIO BALANCE:</b> <code>₹{last_bal:,.0f}</code> (Net P&amp;L: <code>₹{tot_pnl:+,.0f}</code>)\n"
 
     msg += "\n<b>🎯 9:15 AM – 9:25 AM EXECUTION PLAYBOOK:</b>\n"
     msg += "• <b>Rule 1:</b> Square off all legs simultaneously to avoid unhedged leg risk.\n"

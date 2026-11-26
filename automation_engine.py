@@ -20,11 +20,28 @@ from telegram_notifier import send_telegram_message, format_btst_scan_alert, for
 SIGNALS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "signals")
 ORDERS_FILE = os.path.join(SIGNALS_DIR, "btst_orders_today.json")
 LEDGER_FILE = os.path.join(SIGNALS_DIR, "paper_trades_ledger.csv")
+PORTFOLIO_FILE = os.path.join(SIGNALS_DIR, "paper_portfolio.json")
+
+def load_paper_portfolio():
+    """Loads cumulative virtual paper trading portfolio."""
+    if os.path.exists(PORTFOLIO_FILE):
+        try:
+            with open(PORTFOLIO_FILE, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {
+        "starting_capital_inr": 100000.0,
+        "current_capital_inr": 100000.0,
+        "total_pnl_inr": 0.0,
+        "total_trades": 0,
+        "winning_trades": 0
+    }
 
 def calculate_paper_exit_pnl(orders):
     """
-    Computes simulated paper trading P&L upon next-morning open (9:15 AM).
-    Fetches real market open prices and evaluates the quantitative payoff.
+    Computes simulated paper trading P&L upon next-morning open (9:16 AM).
+    Fetches real market open prices and evaluates the quantitative payoff in % and INR.
     """
     results = []
     symbol_map = {
@@ -32,6 +49,8 @@ def calculate_paper_exit_pnl(orders):
         "BANK NIFTY": "^NSEBANK",
         "SENSEX": "^BSESN"
     }
+
+    portfolio = load_paper_portfolio()
 
     for o in orders:
         name = o.get("Index") or o.get("Symbol")
@@ -49,42 +68,62 @@ def calculate_paper_exit_pnl(orders):
             gap_pct = ((open_price - entry_spot) / entry_spot) * 100 if entry_spot else 0.0
 
             strat = o.get("Strategy", "")
-            if "Bullish BWB" in strat:
-                if 0.4 <= gap_pct <= 1.0:
-                    pnl_pct = 50.0
+            # Margin / Capital allocated per 1 lot
+            if "BROKEN WING BUTTERFLY" in strat or "Bullish BWB" in strat:
+                # 1 Lot BWB (~₹25,000 margin, ~₹5,000 max risk base)
+                if 0.35 <= gap_pct <= 1.0:
+                    pnl_pct = 48.0
+                    pnl_inr = 2400.0
                     notes = f"Target zone reached (+{gap_pct:.2f}% gap). Max sweet-spot booked!"
                 elif gap_pct > 1.0:
-                    pnl_pct = 25.0
+                    pnl_pct = 24.0
+                    pnl_inr = 1200.0
                     notes = f"Large gap up (+{gap_pct:.2f}%). Deep ITM wing profit secured."
-                elif 0.0 <= gap_pct < 0.4:
+                elif 0.0 <= gap_pct < 0.35:
                     pnl_pct = 10.0
+                    pnl_inr = 500.0
                     notes = f"Flat/mild open (+{gap_pct:.2f}%). Captured 2x short OTM decay."
                 else:
                     pnl_pct = -6.5
+                    pnl_inr = -1100.0
                     notes = f"Gap against ({gap_pct:.2f}%). Downside strictly capped by wing hedge."
-            elif "Bearish BWB" in strat:
-                if -1.0 <= gap_pct <= -0.4:
-                    pnl_pct = 50.0
+            elif "BEAR PUT BUTTERFLY" in strat or "Bearish BWB" in strat:
+                if -1.0 <= gap_pct <= -0.35:
+                    pnl_pct = 48.0
+                    pnl_inr = 2400.0
                     notes = f"Target zone reached ({gap_pct:.2f}% gap). Max sweet-spot booked!"
                 elif gap_pct < -1.0:
-                    pnl_pct = 25.0
+                    pnl_pct = 24.0
+                    pnl_inr = 1200.0
                     notes = f"Large gap down ({gap_pct:.2f}%). Deep ITM wing profit secured."
-                elif -0.4 < gap_pct <= 0.0:
+                elif -0.35 < gap_pct <= 0.0:
                     pnl_pct = 10.0
+                    pnl_inr = 500.0
                     notes = f"Flat/mild open ({gap_pct:.2f}%). Captured 2x short OTM decay."
                 else:
                     pnl_pct = -6.5
+                    pnl_inr = -1100.0
                     notes = f"Gap against ({gap_pct:+.2f}%). Upside strictly capped by wing hedge."
             elif "IRON CONDOR" in strat:
+                # 1 Lot Iron Condor (~₹40,000 margin, ~₹2,250 net credit)
                 if -0.45 <= gap_pct <= 0.45:
                     pnl_pct = 30.0
-                    notes = f"Contained in range ({gap_pct:+.2f}% gap). Full overnight Theta harvested!"
+                    pnl_inr = 900.0
+                    notes = f"Contained in range ({gap_pct:+.2f}% gap). Overnight Theta harvested!"
                 else:
                     pnl_pct = -14.0
+                    pnl_inr = -2200.0
                     notes = f"Gap breached wings ({gap_pct:+.2f}%). Wing stop-loss triggered."
             else:
                 pnl_pct = gap_pct * 3.0
+                pnl_inr = round(pnl_pct * 100.0, 2)
                 notes = f"Directional exit on open ({gap_pct:+.2f}% move)."
+
+            portfolio["current_capital_inr"] = round(portfolio["current_capital_inr"] + pnl_inr, 2)
+            portfolio["total_pnl_inr"] = round(portfolio["total_pnl_inr"] + pnl_inr, 2)
+            portfolio["total_trades"] += 1
+            if pnl_inr > 0:
+                portfolio["winning_trades"] += 1
 
             results.append({
                 "name": name,
@@ -93,20 +132,26 @@ def calculate_paper_exit_pnl(orders):
                 "open_spot": round(open_price, 2),
                 "gap_pct": round(gap_pct, 2),
                 "pnl_pct": round(pnl_pct, 1),
+                "pnl_inr": round(pnl_inr, 2),
+                "portfolio_balance": portfolio["current_capital_inr"],
+                "total_pnl_inr": portfolio["total_pnl_inr"],
                 "notes": notes
             })
         except Exception as e:
             print(f"[!] Error calculating PnL for {name}: {e}")
 
-    # Log to CSV Ledger
+    # Save updated portfolio and log to CSV Ledger
     if results:
+        with open(PORTFOLIO_FILE, "w") as pf:
+            json.dump(portfolio, pf, indent=4)
+
         file_exists = os.path.exists(LEDGER_FILE)
         now_dt = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
         with open(LEDGER_FILE, "a") as f:
             if not file_exists:
-                f.write("Date,Instrument,Strategy,Entry_Spot,Open_Spot,Gap_Pct,PnL_Pct,Notes\n")
+                f.write("Date,Instrument,Strategy,Entry_Spot,Open_Spot,Gap_Pct,PnL_Pct,PnL_INR,Portfolio_Balance_INR,Notes\n")
             for r in results:
-                f.write(f'"{now_dt}","{r["name"]}","{r["strategy"]}",{r["entry_spot"]},{r["open_spot"]},{r["gap_pct"]}%,{r["pnl_pct"]}%,\"{r["notes"]}\"\n')
+                f.write(f'"{now_dt}","{r["name"]}","{r["strategy"]}",{r["entry_spot"]},{r["open_spot"]},{r["gap_pct"]}%,{r["pnl_pct"]}%,{r["pnl_inr"]},{r["portfolio_balance"]},"{r["notes"]}"\n')
         print(f"[+] Appended {len(results)} trade(s) to Paper Trading Ledger: '{LEDGER_FILE}'")
 
     return results
